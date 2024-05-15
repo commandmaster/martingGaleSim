@@ -22,8 +22,8 @@ if (isMainThread) {
                     startingMoney: 5,
                     startingBet: 0.01,
                     winChance: 0.47,
-                    winMult: 2.1,
-                    maxIterations: 36000,
+                    winMult: 2.05,
+                    maxIterations: 6000,
                     maxTime: 12
                 }
         });
