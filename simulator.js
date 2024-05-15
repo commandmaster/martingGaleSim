@@ -17,14 +17,22 @@ if (isMainThread) {
     loadingBar.start(maxSimulations, 0);
 
     function createSimWorker(){
+        const startingMoney = 20;
+        const startingBet = 0.01;
+        const winChance = 0.48;
+        const winMult = 2;
+        const maxIterations = argv[4] || 1000;
+        const maxTime = 12;
+
+
         const worker = new Worker(__filename, {
                 workerData: {
-                    startingMoney: 5,
-                    startingBet: 0.01,
-                    winChance: 0.47,
-                    winMult: 2.05,
-                    maxIterations: 6000,
-                    maxTime: 12
+                    startingMoney: startingMoney,
+                    startingBet: startingBet,
+                    winChance: winChance,
+                    winMult: winMult,
+                    maxIterations: maxIterations,
+                    maxTime: maxTime
                 }
         });
         worker.on('message', (message) => {
@@ -42,23 +50,34 @@ if (isMainThread) {
                 simData.totalIterations += message.iterations;
                 simData.averageIterations = Number((simData.totalIterations / simData.total));
 
+                simData.successRate = Number((100 * simData.completed / simData.total).toFixed(2)) + '%';
+                simData.failRate = Number((100 * simData.failures / simData.total).toFixed(2)) + '%';
+
+                simData.startingMoney = startingMoney + '$';
+                simData.startingBet = startingBet + '$';
+                simData.winChance = (winChance * 100) + '%';
+                simData.winMult = winMult + 'x';
+                simData.maxIterationsPerSim = Number(maxIterations) + ' iterations';
+                simData.maxTimePerSim = maxTime + 's';
+
+
                 loadingBar.update(simData.total);
 
                 if (simData.total >= maxSimulations){
-                    setTimeout(() => {
-                        process.exit();
-                    }, 1200);
+                    console.log('Simulation complete');
+                    fs.writeFileSync(`results/${uuid}.json`, JSON.stringify(simData, null, 2));
+
+                    loadingBar.stop();
+                
+                    // exit the process
+                    process.exit(0);
                 }
             }
         });
         worker.postMessage('start');
     }
 
-    setInterval(() => {
-        fs.writeFile('results/simData-' + uuid + '.json', JSON.stringify(simData, null, 4), (err) => {
-            if (err) throw err;
-        });
-    }, 1000);
+    
     
     const sims = argv[3] || 5;
 
@@ -128,19 +147,18 @@ function headlessSimulation(startingMoney, startingBet, winChance, winMult, maxI
         return [maxMoney, iterations, lossStreak];
         }
         
-        
+        money -= currentBet;
         if(Math.random() < winChance){
-        money += currentBet * winMult;
-        currentBet = startingBet;
-        lossStreak = 0;
-        wins++;
+            money += currentBet * winMult;
+            currentBet = startingBet;
+            lossStreak = 0;
+            wins++;
         }
         
         else{
-        money -= currentBet;
-        currentBet *= 2;
-        lossStreak++;
-        losses++;
+            currentBet *= 2;
+            lossStreak++;
+            losses++;
         }
         
         money = Number(money.toFixed(4))
@@ -155,7 +173,7 @@ function headlessSimulation(startingMoney, startingBet, winChance, winMult, maxI
         loseAllProb = Math.min(Number((100 * (1-winChance) ** loseAllStreak).toFixed(4)), 100)
         
         if (loseAllProb >  50){
-        currentBet = startingBet;
+            //currentBet = startingBet;
         }
         
         
