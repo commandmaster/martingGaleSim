@@ -2,7 +2,7 @@ const { Worker, isMainThread, parentPort, workerData } = require('worker_threads
 const fs = require('fs');
 const cliProgress = require('cli-progress');
 const crypto  = require('crypto');
-const { fail } = require('assert');
+
 const { argv } = require('process');
 
 
@@ -18,13 +18,13 @@ if (isMainThread) {
 
     function createSimWorker(){
         const config = JSON.parse(fs.readFileSync('simConfig.json'));
-        const startingMoney = config.startingMoney;
-        const startingBet = config.startingBet;
-        const winChance = config.winChance;
-        const winMult = config.winMult;
-        const maxIterations = config.maxIterations;
-        const maxTime = config.maxTime;
-        const targetMoney = config.targetMoney;
+        const startingMoney = argv[4] || config.startingMoney;
+        const startingBet = argv[5] || config.startingBet;
+        const winChance = argv[6] || config.winChance;
+        const winMult = argv[7] || config.winMult;
+        const maxIterations = argv[8] || config.maxIterations;
+        const maxTime = argv[9] || config.maxTime;
+        const targetMoney = argv[10] || config.targetMoney;
 
 
         const worker = new Worker(__filename, {
@@ -70,8 +70,12 @@ if (isMainThread) {
                 loadingBar.update(simData.total);
 
                 if (simData.total >= maxSimulations){
-                    console.log('Simulation complete');
                     fs.writeFileSync(`results/${uuid}-${winChance}.json`, JSON.stringify(simData, null, 2));
+
+                    simData.completedSims = []; // reset the data so it's not logged
+                    simData.simFailures = []; // reset the data so it's not logged
+                    console.log(JSON.stringify(simData, null, 2));
+                    
 
                     loadingBar.stop();
                 

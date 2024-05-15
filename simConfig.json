@@ -3,7 +3,7 @@
    "startingBet": 0.01,
    "winChance": 0.32,
    "winMult": 3,
-   "maxIterations": 500,
+   "maxIterations": 50000,
    "maxTime": 15,
    "targetMoney": 100
 }
