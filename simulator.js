@@ -64,14 +64,14 @@ if (isMainThread) {
                 simData.maxTimePerSim = maxTime + 's';
 
                 simData.targetMoney = targetMoney + '$';
-                
+
 
 
                 loadingBar.update(simData.total);
 
                 if (simData.total >= maxSimulations){
                     console.log('Simulation complete');
-                    fs.writeFileSync(`results/${uuid}.json`, JSON.stringify(simData, null, 2));
+                    fs.writeFileSync(`results/${uuid}-${winChance}.json`, JSON.stringify(simData, null, 2));
 
                     loadingBar.stop();
                 
