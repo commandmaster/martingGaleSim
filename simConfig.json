@@ -1,0 +1,9 @@
+{
+   "startingMoney": 10,
+   "startingBet": 0.01,
+   "winChance": 0.4,
+   "winMult": 2.49,
+   "maxIterations": 500,
+   "maxTime": 15,
+   "targetMoney": 100
+}

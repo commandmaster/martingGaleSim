@@ -17,12 +17,14 @@ if (isMainThread) {
     loadingBar.start(maxSimulations, 0);
 
     function createSimWorker(){
-        const startingMoney = 20;
-        const startingBet = 0.01;
-        const winChance = 0.48;
-        const winMult = 2;
-        const maxIterations = argv[4] || 1000;
-        const maxTime = 12;
+        const config = JSON.parse(fs.readFileSync('simConfig.json'));
+        const startingMoney = config.startingMoney;
+        const startingBet = config.startingBet;
+        const winChance = config.winChance;
+        const winMult = config.winMult;
+        const maxIterations = config.maxIterations;
+        const maxTime = config.maxTime;
+        const targetMoney = config.targetMoney;
 
 
         const worker = new Worker(__filename, {
@@ -32,7 +34,8 @@ if (isMainThread) {
                     winChance: winChance,
                     winMult: winMult,
                     maxIterations: maxIterations,
-                    maxTime: maxTime
+                    maxTime: maxTime,
+                    targetMoney: targetMoney
                 }
         });
         worker.on('message', (message) => {
@@ -59,6 +62,9 @@ if (isMainThread) {
                 simData.winMult = winMult + 'x';
                 simData.maxIterationsPerSim = Number(maxIterations) + ' iterations';
                 simData.maxTimePerSim = maxTime + 's';
+
+                simData.targetMoney = targetMoney + '$';
+                
 
 
                 loadingBar.update(simData.total);
@@ -98,14 +104,14 @@ else{
 
     function runSim(){
         let params = structuredClone(data);
-        const simData = headlessSimulation(params.startingMoney, params.startingBet, params.winChance, params.winMult, params.maxIterations, params.maxTime);
+        const simData = headlessSimulation(params.startingMoney, params.startingBet, params.winChance, params.winMult, params.maxIterations, params.maxTime, params.targetMoney);
         parentPort.postMessage({simData: simData, completedSims: simData[0], simFailures: simData[1], money: simData[2], iterations: simData[3]});
     }
 }
 
 
 
-function headlessSimulation(startingMoney, startingBet, winChance, winMult, maxIterations = 1000000, maxTime = 500){
+function headlessSimulation(startingMoney, startingBet, winChance, winMult, maxIterations = 1000000, maxTime = 500, targetMoney = Infinity){
     let money = startingMoney;
     let currentBet = startingBet;
     let lossStreak = 0;
@@ -133,18 +139,24 @@ function headlessSimulation(startingMoney, startingBet, winChance, winMult, maxI
 
 
     function takeTurn(){
+        if (money >= targetMoney){
+            completedSims.push({money, iterations, lossStreak});
+            return [maxMoney, iterations, lossStreak];
+        }
+
         if (performance.now() > endTime){
-        completedSims.push({money, iterations, lossStreak});
+            completedSims.push({money, iterations, lossStreak});
+            return [maxMoney, iterations, lossStreak];
         }
 
         if (iterations >= maxIterations){
-        completedSims.push({money, iterations, maxLossStreak});
-        return [maxMoney, iterations, lossStreak];
+            completedSims.push({money, iterations, maxLossStreak});
+            return [maxMoney, iterations, lossStreak];
         }
 
         if ((money - currentBet) < 0 || money <= 0){
-        simFailures.push({money, iterations, maxLossStreak});
-        return [maxMoney, iterations, lossStreak];
+            simFailures.push({money, iterations, maxLossStreak});
+            return [maxMoney, iterations, lossStreak];
         }
         
         money -= currentBet;
