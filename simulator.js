@@ -158,12 +158,19 @@ function headlessSimulation(startingMoney, startingBet, winChance, winMult, maxI
             return [maxMoney, iterations, lossStreak];
         }
 
-        if ((money - currentBet) < 0 || money <= 0){
-            simFailures.push({money, iterations, maxLossStreak});
-            return [maxMoney, iterations, lossStreak];
+        
+
+        if (money - currentBet < 0){
+            currentBet = startingBet;
         }
         
         money -= currentBet;
+
+        if (money <= 0){
+            simFailures.push({money, iterations, maxLossStreak});
+            return [maxMoney, iterations, lossStreak];
+        }
+
         if(Math.random() < winChance){
             money += currentBet * winMult;
             currentBet = startingBet;
