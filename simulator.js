@@ -70,6 +70,16 @@ if (isMainThread) {
                 loadingBar.update(simData.total);
 
                 if (simData.total >= maxSimulations){
+                    simData.notAtTarget = 0;
+                    simData.notAtTargetSimulations = [];
+
+                    for (let i = 0; i < simData.completedSims.length; i++){
+                        if (simData.completedSims[i].money < targetMoney - 0.001){
+                            simData.notAtTarget++;
+                            simData.notAtTargetSimulations.push(simData.completedSims[i]);
+                        }
+                    }
+
                     fs.writeFileSync(`results/${uuid}-${winChance}.json`, JSON.stringify(simData, null, 2));
 
                     simData.completedSims = []; // reset the data so it's not logged
@@ -143,10 +153,7 @@ function headlessSimulation(startingMoney, startingBet, winChance, winMult, maxI
 
 
     function takeTurn(){
-        if (money >= targetMoney){
-            completedSims.push({money, iterations, lossStreak});
-            return [maxMoney, iterations, lossStreak];
-        }
+        
 
         if (performance.now() > endTime){
             completedSims.push({money, iterations, lossStreak});
@@ -165,6 +172,7 @@ function headlessSimulation(startingMoney, startingBet, winChance, winMult, maxI
         }
         
         money -= currentBet;
+        const lossMult = 10;
 
         if (money <= 0){
             simFailures.push({money, iterations, maxLossStreak});
@@ -179,12 +187,11 @@ function headlessSimulation(startingMoney, startingBet, winChance, winMult, maxI
         }
         
         else{
-            currentBet *= 2;
+            currentBet *= lossMult;
             lossStreak++;
             losses++;
         }
         
-        money = Number(money.toFixed(4))
         money = Math.max(0, money)
         
         maxMoney = Math.max(money, maxMoney)
@@ -192,20 +199,19 @@ function headlessSimulation(startingMoney, startingBet, winChance, winMult, maxI
         iterations++;
         maxLossStreak = Math.max(maxLossStreak, lossStreak)
         
-        loseAllStreak = Math.floor(Math.log(((money * (2-1)) / (currentBet))+1) / Math.log(2));
+        loseAllStreak = Math.floor(Math.log(((money * (lossMult-1)) / (currentBet))+1) / Math.log(lossMult));
         loseAllProb = Math.min(Number((100 * (1-winChance) ** loseAllStreak).toFixed(4)), 100)
+
         
-        if (loseAllProb >  50){
-            //currentBet = startingBet;
+        
+        if (money >= targetMoney){
+            completedSims.push({money, iterations, lossStreak});
+            return [maxMoney, iterations, lossStreak];
         }
         
-        
-        
-        
-        startingBet = money/10000;
-        startingBet = Math.max(startingBet, 0.01)
-        
-        startingBet = Number(startingBet.toFixed(2))
+        //startingBet = money/10000;
+        //startingBet = Math.max(startingBet, 0.01);
+        //startingBet = Number(startingBet.toFixed(2))
 
         return false;
     }
